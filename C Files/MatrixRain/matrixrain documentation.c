@@ -5,67 +5,78 @@
 #include <string.h> 
 
 // Screen size and effect settings
-#define WIDTH 80     /* Console width in characters */
-#define HEIGHT 25    // Console height in characters
-#define TRAIL 4      // Length of the trailing effect in the rain
+// Width is the width of the terminal (obviously) and the height is literally the height of the terminal
+// Trail is how long the matrix trails are in the beginning.
+#define WIDTH 80     
+#define HEIGHT 24    
+#define TRAIL 4     
 
 /* ---------------- MATRIX RAIN ---------------- */
-// Draws one falling column of Matrix rain characters
-// `col` = which column to draw in
-// `head` = current "head" position of the falling rain
-void draw_column(int col, int head) {
-    int row, pos, tail;
+// in order to recreate the matrix effect, we need to work on two things.
+// The trail, and the controller itself.
 
-    // Loop through trail characters
-    for (row = 0; row < TRAIL; row++) {
-        pos = head - row; // Position of this character in the column
+// The idea here is that we create the rain seperately. this way we can handle it easily.
+// This function creates the rain itself so basically 1 drop of the rain
+void draw_column(int col, int head) {
+    int row, pos, tail; // no values in the local variables (used later)
+ // the "col" here is where the head starts so basically where the head is on the x axis
+ // the "head" here is where the head part of the rain is 
+
+    
+    // this is for the trail effect
+    for (row = 0; row < TRAIL; row++) { // this is the core mechanic. we need to loop this if our row is less than the trail
+        pos = head - row; // this makes it so it knows where it is
 
         // Only draw if inside screen boundaries
-        if (pos >= 0 && pos < HEIGHT) {
-            gotoxy(col + 1, pos + 1);             // Move cursor
-            textcolor(row == 0 ? 15 : 10);        // Head is white, trail is green
-            cprintf("%c", 33 + random(90));       // Random ASCII character
+        if (pos >= 0 && pos < HEIGHT) { // checks if its not above the screen or below the screen
+            gotoxy(col + 1, pos + 1);             // move cursor to where we putting the chars
+            textcolor(row == 0 ? 15 : 10);        // if row 0 then white, if row is not 0 then green ez pz bro
+            cprintf("%c", 33 + random(90));       // Random ASCII picker
         }
     }
 
     // Erase the tail so the column doesn’t stretch forever
     tail = head - TRAIL;
-    if (tail >= 0 && tail < HEIGHT) {
-        gotoxy(col + 1, tail + 1);
+    if (tail >= 0 && tail < HEIGHT) { // same logic except as above but this tiem it checks the tail, cuz we need to erase teh tail
+        gotoxy(col + 1, tail + 1);  // once again still the same
         cprintf(" ");
     }
 }
 
 // Controls the entire Matrix rain animation
+// controls the entire rain animation
 void matrixRain() {
-    int head[WIDTH], col, spawning = 1, row;
+    int head[WIDTH];  // array that stores the y-position (head) of each column
+    int col;          // loop counter for columns
+    int spawning = 1; // flag to keep respawning drops (turns 0 later to stop)
+    int row;          // loop counter for rows (mainly for fade-out)
 
-    clrscr();      // Clear screen before starting
-    randomize();   // Randomize random() generator for fresh values
+    clrscr();      // clear screen before starting
+    randomize();   // seed random number generator so rain looks different each run
 
-    // Initialize each column with a random head position
+    // initialize each column with a random start position
     for (col = 0; col < WIDTH; col++)
-        head[col] = random(HEIGHT) - random(HEIGHT);
+        head[col] = random(HEIGHT) - random(HEIGHT); // random negative start offsets
 
-    // Loop until a key is pressed
+    // main loop runs until any key is pressed
     while (!kbhit()) {
         for (col = 0; col < WIDTH; col++) {
-            if (random(2) == 0) {     // Randomly decide whether this column falls this frame
-                draw_column(col, head[col]);
-                head[col]++;          // Move the column downward
+            if (random(2) == 0) {     // 50/50 chance this column updates this frame
+                draw_column(col, head[col]); // draw it
+                head[col]++;          // move head down
 
-                // Respawn a new column at the top if it reached the bottom
+                // respawn drop if it fell off the bottom
                 if (spawning && head[col] >= HEIGHT + TRAIL)
                     head[col] = -random(HEIGHT);
             }
         }
-        delay(20); // Delay so animation doesn’t run too fast
+        delay(20); // small delay so it doesn’t run crazy fast
     }
 
-    getch();       // Consume the pressed key so it doesn’t leak
-    spawning = 0;  // Stop spawning new columns
+    getch();       // eat the pressed key
+    spawning = 0;  // stop spawning new drops
 
-    // Fade out effect: wipe each row slowly
+    // fade out effect by clearing line by line
     for (row = 1; row <= HEIGHT; row++) {
         gotoxy(1, row);
         for (col = 0; col < WIDTH; col++)
@@ -75,36 +86,40 @@ void matrixRain() {
 }
 
 /* ---------------- TYPED MESSAGES ---------------- */
-// Simulates typing a message slowly (like a hacker terminal)
+// simulates typing text letter by letter (like hacker terminal)
 void typeMessage(char *msg) {
-    int i, len = strlen(msg);
-    int x = (WIDTH - len) / 2; // Center horizontally
-    int y = HEIGHT / 2;        // Center vertically
-    textcolor(10);             // Green text like Matrix
+    int i;                  // loop counter
+    int len = strlen(msg);  // length of the message
+    int x = (WIDTH - len) / 2; // starting X (so it’s centered)
+    int y = HEIGHT / 2;        // Y position (center of screen)
+
+    textcolor(10); // green text
     for (i = 0; i < len; i++) {
-        gotoxy(x + i + 1, y);  // Position cursor
-        cprintf("%c", msg[i]); // Print character one by one
-        delay(180);            // Typing effect
+        gotoxy(x + i + 1, y);  // move cursor for each letter
+        cprintf("%c", msg[i]); // print the letter
+        delay(180);            // delay = fake typing speed
     }
 }
 
-// Erases the typed message backwards
+// erases the typed message backwards
 void eraseMessage(char *msg) {
-    int i, len = strlen(msg);
-    int x = (WIDTH - len) / 2;
-    int y = HEIGHT / 2;
+    int i;                  // loop counter (backwards)
+    int len = strlen(msg);  // message length
+    int x = (WIDTH - len) / 2; // same center X as before
+    int y = HEIGHT / 2;        // same Y
+
     for (i = len - 1; i >= 0; i--) {
         gotoxy(x + i + 1, y);
-        cprintf(" ");          // Replace character with space
+        cprintf(" ");   // replace with space
         delay(100);
     }
 }
 
 /* ---------------- ASCII ART ---------------- */
-// Displays an ASCII banner with delay for dramatic reveal
+// shows a big ascii banner with a reveal effect
 void displayAsciiArt() {
-    int i;
-    char *asciiArt[6] = {
+    int i; // loop counter
+    char *asciiArt[6] = { // array of strings (the logo lines)
         "  _______    _ _____     _____ ____  _____  ________   __",
         " |___  / |  | |  __ \\   / ____/ __ \\|  __ \\|  ____\\ \\ / /",
         "    / /| |__| | |__) | | |   | |  | | |  | | |__   \\ V / ",
@@ -113,26 +128,29 @@ void displayAsciiArt() {
         " /_____|_|  |_|_|  \\_\\  \\_____\\____/|_____/|______/_/ \\_\\"
     };
 
-    clrscr();  // Clear screen for clean banner
+    clrscr();  // clear before drawing
     textcolor(10);
 
-    // Print each line with a small delay for dramatic effect
+    // print each line one by one
     for (i = 0; i < 6; i++) {
         gotoxy((WIDTH - strlen(asciiArt[i])) / 2 + 1, i + 2);
         cprintf("%s", asciiArt[i]);
         delay(50);
     }
 
-    // Print subtitle below the art
+    // add subtitle under it
     gotoxy((WIDTH - 26) / 2 + 1, 9);
     cprintf("WE OWN THE WORLD SINCE 2008");
     delay(1000);
 }
 
 /* ---------------- HACKER TERMINAL ---------------- */
-// Simulates hacking text logs scrolling down
+// shows fake hacking logs line by line
 void hackerTerminal() {
-    int row = 10, i;
+    int row = 10; // starting row to print logs
+    int i;        // loop counter
+
+    // array of fake log messages
     char *sequence[] = {
         "INITIALIZING ROOTKIT v3.7...",
         "LOADING EXPLOIT MODULES...",
@@ -151,20 +169,23 @@ void hackerTerminal() {
         "FIREWALLS BYPASSED",
         "ENCRYPTION KEYS CAPTURED"
     };
+
+    // custom delays for each log (to look less robotic)
     int delays[] = {1200, 1000, 1000, 1500, 1200, 800, 700, 700, 700, 1000, 600, 600, 600, 600, 600, 700};
 
-    // Print each "log entry" with its own delay (to simulate real processing time)
     for (i = 0; i < 16; i++) {
-        gotoxy(1, row + i);
+        gotoxy(1, row + i);     // move down each time
         cprintf("%s", sequence[i]);
-        delay(delays[i]);
+        delay(delays[i]);       // unique pause per log
     }
 }
 
 /* ---------------- CLEAR TERMINAL BELOW ASCII ---------------- */
-// Wipes everything below the ASCII art so it looks like new content is loading
+// wipes everything under the ascii art (so new stuff looks clean)
 void clearTerminalBelowAscii(int asciiHeight) {
-    int row, col;
+    int row; // loop counter for rows
+    int col; // loop counter for columns
+
     for (row = asciiHeight + 1; row <= HEIGHT; row++)
         for (col = 1; col <= WIDTH; col++) {
             gotoxy(col, row);
@@ -173,9 +194,13 @@ void clearTerminalBelowAscii(int asciiHeight) {
 }
 
 /* ---------------- CYPHER'S EYE ---------------- */
-// Simulates a system scan listing cameras, phones, banks, etc.
+// another fake “system scan” sequence
 void cyphersEyeSequence() {
-    int row = 9, i, currentRow;
+    int row = 9;        // starting row to print
+    int i;              // loop counter
+    int currentRow;     // keeps track of where we’re printing next
+
+    // arrays of fake subsystems
     char *cameras[] = {"CAM_01", "CAM_02", "CAM_03"};
     char *phones[]  = {"PH_01", "PH_02"};
     char *banks[]   = {"ATM_01", "BANK_01"};
@@ -187,9 +212,9 @@ void cyphersEyeSequence() {
     gotoxy(1, row); cprintf("INIT CYPHER'S EYE v1.0..."); delay(1000);
     gotoxy(1, row + 1); cprintf("SCANNING NETWORKS..."); delay(800);
 
-    currentRow = row + 2;
+    currentRow = row + 2; // start after the headers
 
-    // Print subsystems with staggered timing for realism
+    // show each group w/ staggered timing
     for (i = 0; i < 3; i++) { gotoxy(1, currentRow + i); cprintf("[CYBER] %s ONLINE", cameras[i]); delay(400); }
     currentRow += 3;
     for (i = 0; i < 2; i++) { gotoxy(1, currentRow + i); cprintf("[CYBER] %s ACTIVE", phones[i]); delay(400); }
@@ -203,36 +228,40 @@ void cyphersEyeSequence() {
     currentRow++;
     for (i = 0; i < 2; i++) { gotoxy(1, currentRow + i); cprintf("[CYBER] %s UNLOCKED", locks[i]); delay(600); }
     currentRow += 2;
+
     gotoxy(1, currentRow); cprintf("[INFO] CYPHER'S EYE ACTIVE"); delay(3000);
 }
 
 /* ---------------- JOIN PROMPT ---------------- */
-// Interactive yes/no prompt to decide whether the user joins
+// asks the user yes/no
 void joinPrompt() {
-    char ch;
-    int x = (WIDTH - 40) / 2, y = HEIGHT - 2;
+    char ch;  // stores pressed key
+    int x = (WIDTH - 40) / 2; // horizontal position for prompt
+    int y = HEIGHT - 2;       // bottom of the screen
+
     gotoxy(x + 1, y); 
     cprintf("WILL YOU JOIN US IN THIS ADVENTURE, NEO?");
 
-    // Infinite loop until user presses Y or N
+    // loop until user presses Y or N
     while (1) {
-        ch = getch();
+        ch = getch(); // wait for key
         if (ch == 'Y' || ch == 'y') {
             clrscr();
             typeMessage("Welcome to ZHR.");
             delay(5000);
-            exit(0); // End program
+            exit(0); // exit program (joined)
         }
         if (ch == 'N' || ch == 'n') {
-            exit(0); // End program immediately
+            exit(0); // exit immediately (refused)
         }
     }
 }
 
 /* ---------------- MAIN ---------------- */
-// Main driver of the program: controls the whole sequence
-int main() {   // should be int, not void
-    matrixRain();
+// main driver: runs everything in sequence
+int main() {
+    matrixRain(); // start with the matrix effect
+
     typeMessage("You are the chosen one, Neo.");
     delay(1000);
     eraseMessage("You are the chosen one, Neo.");
@@ -250,5 +279,6 @@ int main() {   // should be int, not void
     joinPrompt();
     getch();
 
-    return 0; // Proper exit code
+    return 0; // exit cleanly
+}
 }
