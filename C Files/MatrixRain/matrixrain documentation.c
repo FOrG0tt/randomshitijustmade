@@ -1,11 +1,11 @@
-#include <stdio.h>   // Standard input/output functions (printf, etc.)
-#include <conio.h>   // Console input/output (gotoxy, cprintf, getch, kbhit)
-#include <stdlib.h>  // General utilities (exit, randomize, random)
-#include <dos.h>     // For delay() in old Turbo C compilers
-#include <string.h>  // For string functions like strlen()
+#include <stdio.h>   
+#include <conio.h>   
+#include <stdlib.h>  
+#include <dos.h>     
+#include <string.h> 
 
 // Screen size and effect settings
-#define WIDTH 80     // Console width in characters
+#define WIDTH 80     /* Console width in characters */
 #define HEIGHT 25    // Console height in characters
 #define TRAIL 4      // Length of the trailing effect in the rain
 
