@@ -55,12 +55,12 @@ void matrixRain() {
     randomize();   // seed random number generator so rain looks different each run
 
     // initialize each column with a random start position
-    for (col = 0; col < WIDTH; col++)
+    for (col = 0; col < WIDTH; col++) // funny ahh loop
         head[col] = random(HEIGHT) - random(HEIGHT); // random negative start offsets
 
     // main loop runs until any key is pressed
     while (!kbhit()) {
-        for (col = 0; col < WIDTH; col++) {
+        for (col = 0; col < WIDTH; col++) { // another funny ahh loop
             if (random(2) == 0) {     // 50/50 chance this column updates this frame
                 draw_column(col, head[col]); // draw it
                 head[col]++;          // move head down
